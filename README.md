@@ -2,6 +2,14 @@
 
 Phase-based pipeline (ingestion → preferences → retrieval → LLM → API) with **FastAPI**, **Streamlit**, and **Next.js** UIs. See `phase_wise_architecture.md` for design detail.
 
+### One URL to test Next.js + Streamlit together
+
+Use your **Vercel production URL** (example: [https://zomato-milestone-1-recommendations.vercel.app](https://zomato-milestone-1-recommendations.vercel.app)) with **one** environment variable:
+
+`NEXT_PUBLIC_BACKEND_MODE` = `streamlit`
+
+Redeploy. Home embeds [Streamlit Cloud](https://zomatorecommendations.streamlit.app/) under the Next.js header (if embedding is blocked, use **Open Streamlit in new tab**). History and Metrics tabs remain part of the same site. Override the Streamlit origin with `NEXT_PUBLIC_STREAMLIT_APP_URL` if needed.
+
 ## Quick start (local)
 
 1. **Environment:** copy `.env.example` → `.env` and set `RECOMMENDATION_API_KEY`, `GROQ_API_KEY`.
@@ -30,12 +38,17 @@ The Next.js app lives only under **`frontend-next/`**. Vercel must use that fold
 5. Framework should auto-detect **Next.js**. If not, choose **Next.js** manually.
 6. Add **Environment Variables** (Production — and Preview if you use it).
 
-   **Connect Vercel to Streamlit only** (no FastAPI):
+   **Connect Vercel to Streamlit only** (no FastAPI) — **minimum config:**
 
    | Name | Value |
    |------|--------|
    | `NEXT_PUBLIC_BACKEND_MODE` | `streamlit` |
-   | `NEXT_PUBLIC_STREAMLIT_APP_URL` | `https://zomatorecommendations.streamlit.app` (no trailing `/`) |
+
+   Optional override (defaults to `https://zomatorecommendations.streamlit.app` in code when mode is `streamlit`):
+
+   | Name | Value |
+   |------|--------|
+   | `NEXT_PUBLIC_STREAMLIT_APP_URL` | your Streamlit URL (no trailing `/`) |
 
    **Use the Next.js form + metrics** (requires a real API):
 

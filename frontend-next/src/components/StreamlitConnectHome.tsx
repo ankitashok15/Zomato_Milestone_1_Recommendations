@@ -4,6 +4,10 @@ import { Button } from "./Button";
 
 type Props = { streamlitUrl: string };
 
+/**
+ * Single-page shell: Next.js chrome (nav, design system) + embedded Streamlit (Python recommender).
+ * If Streamlit sets X-Frame-Options, the iframe may be blank — use “Open in new tab”.
+ */
 export function StreamlitConnectHome({ streamlitUrl }: Props) {
   const openApp = () => {
     window.open(streamlitUrl, "_blank", "noopener,noreferrer");
@@ -17,47 +21,49 @@ export function StreamlitConnectHome({ streamlitUrl }: Props) {
         <span />
       </div>
 
-      <section className="card">
-        <h1>Find restaurants</h1>
-        <p className="muted" style={{ marginTop: 0 }}>
-          This deployment uses your <strong>Streamlit</strong> app for recommendations (localities, cuisines, Groq ranking).
-          Streamlit does not expose the same JSON API as FastAPI, so the form below is replaced with a direct link to your
-          live app.
-        </p>
-        <div className="row-actions">
-          <Button type="button" variant="primary" onClick={openApp}>
-            Open recommender (Streamlit)
-          </Button>
-          <Button
-            type="button"
-            variant="outlined"
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(streamlitUrl);
-              } catch {
-                /* ignore */
-              }
-            }}
-          >
-            Copy Streamlit URL
-          </Button>
+      <section className="card streamlit-unified-toolbar">
+        <div className="streamlit-unified-toolbar-inner">
+          <div>
+            <h1 style={{ marginBottom: 4 }}>Find restaurants</h1>
+            <p className="muted" style={{ margin: 0 }}>
+              <strong>Next.js</strong> (this site) + <strong>Streamlit</strong> (embedded below) — one page to try both.
+            </p>
+          </div>
+          <div className="row-actions" style={{ marginTop: 0 }}>
+            <Button type="button" variant="primary" onClick={openApp}>
+              Open Streamlit in new tab
+            </Button>
+            <Button
+              type="button"
+              variant="outlined"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(streamlitUrl);
+                } catch {
+                  /* ignore */
+                }
+              }}
+            >
+              Copy Streamlit URL
+            </Button>
+          </div>
         </div>
-        <p className="field-hint" style={{ marginTop: 12 }}>
-          URL:{" "}
-          <a href={streamlitUrl} target="_blank" rel="noopener noreferrer">
-            {streamlitUrl}
-          </a>
+        <p className="field-hint" style={{ marginTop: 10, marginBottom: 0 }}>
+          If the frame stays empty, Streamlit Cloud may block embedding — use the button above. Full Next form + metrics
+          need a deployed FastAPI <code>BACKEND_URL</code> and <code>NEXT_PUBLIC_BACKEND_MODE=fastapi</code>.
         </p>
       </section>
 
-      <section className="card">
-        <h2 className="heading">Optional: Next.js form + metrics</h2>
-        <p className="muted">
-          To use the full form on this site (localities, metrics, history sync with API), deploy{" "}
-          <strong>FastAPI</strong> (<code>phase6</code>) somewhere, set <code>BACKEND_URL</code> on Vercel to that HTTPS
-          origin, and set <code>NEXT_PUBLIC_BACKEND_MODE=fastapi</code> (or remove it). See README.
-        </p>
-      </section>
+      <div className="streamlit-unified-frame-wrap">
+        <iframe
+          title="Streamlit recommender (Python backend)"
+          src={streamlitUrl}
+          className="streamlit-unified-frame"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      </div>
     </>
   );
 }

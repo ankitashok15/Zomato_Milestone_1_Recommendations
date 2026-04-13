@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { STREAMLIT_APP_URL } from "@/lib/runtimeConfig";
 
 const pillStyle: React.CSSProperties = {
   display: "inline-flex",
@@ -23,8 +24,6 @@ const iconBtn = (active: boolean) =>
     background: active ? "var(--color-primary)" : "transparent",
     border: active ? "none" : "1px solid transparent",
   }) as React.CSSProperties;
-
-const streamlitAppUrl = process.env.NEXT_PUBLIC_STREAMLIT_APP_URL?.replace(/\/+$/, "") || "";
 
 export function NavBar({ active }: { active: "home" | "history" | "metrics" }) {
   return (
@@ -57,9 +56,9 @@ export function NavBar({ active }: { active: "home" | "history" | "metrics" }) {
         >
           Zomato AI Recommender
         </span>
-        {streamlitAppUrl ? (
+        {STREAMLIT_APP_URL ? (
           <a
-            href={streamlitAppUrl}
+            href={STREAMLIT_APP_URL}
             target="_blank"
             rel="noopener noreferrer"
             style={{
