@@ -165,8 +165,10 @@ def persist_feedback(event_type: str, payload: FeedbackPayload) -> None:
 
 
 def main() -> None:
-    _apply_streamlit_secrets()
+    # Must be the first Streamlit command (accessing st.secrets before this breaks the app on Cloud).
     st.set_page_config(page_title="Zomato AI Recommender", layout="wide")
+    _apply_streamlit_secrets()
+
     st.title("Zomato AI Recommender")
     st.caption("Streamlit app — same retrieval + LLM path as `phase6` FastAPI.")
 
@@ -175,13 +177,17 @@ def main() -> None:
     except FileNotFoundError as e:
         st.error(f"Data not found: {e}")
         st.info("Run **Phase 2 ingestion** locally: `python phase2/src/ingest_zomato.py` then redeploy or refresh data.")
-        return
+        st.stop()
+    except Exception as e:
+        st.error("Could not load restaurant catalog or services.")
+        st.exception(e)
+        st.stop()
 
     localities = retrieval.list_localities()
     cuisines = retrieval.list_cuisines()
     if not localities or not cuisines:
         st.error("Localities or cuisines list is empty. Check processed CSVs under `phase2/data/processed/`.")
-        return
+        st.stop()
 
     if not os.getenv("GROQ_API_KEY"):
         st.warning("**GROQ_API_KEY** is not set. Add it to `.env` locally or Streamlit **Secrets** for LLM ranking.")
@@ -194,6 +200,9 @@ def main() -> None:
 
     cuisine_filter = st.text_input("Filter cuisines (optional)", "")
     filtered = [c for c in cuisines if not cuisine_filter.strip() or cuisine_filter.lower() in c.lower()]
+    if not filtered:
+        st.warning("No cuisines match that filter — showing all cuisines for this control.")
+        filtered = list(cuisines)
     default_pick = [c for c in filtered if c == "North Indian"] or ([filtered[0]] if filtered else [])
     selected_cuisines = st.multiselect("Cuisines", options=filtered, default=default_pick)
 
@@ -213,36 +222,34 @@ def main() -> None:
     if st.button("Get recommendations", type="primary"):
         if not locality:
             st.error("Please select a locality.")
-            return
-        if not selected_cuisines:
+        elif not selected_cuisines:
             st.error("Select at least one cuisine.")
-            return
-        try:
-            req = RecommendationRequest(
-                location=locality,
-                budget_amount=int(budget),
-                cuisine=selected_cuisines,
-                min_rating=float(min_rating),
-                party_type=party.strip() or None,
-                service_expectation=service.strip() or None,
-                free_text_notes=notes.strip() or None,
-                top_k_results=int(top_k),
-                top_n_candidates=int(top_n),
-                include_debug=include_debug,
-            )
-        except ValidationError as err:
-            st.error(err)
-            return
-
-        with st.spinner("Ranking restaurants…"):
+        else:
             try:
-                data = run_recommendations(req, retrieval, llm, circuit, metrics)
-            except Exception as e:
-                st.exception(e)
-                return
-
-        st.session_state["last_result"] = data
-        st.session_state["metrics_snapshot"] = metrics.snapshot()
+                req = RecommendationRequest(
+                    location=locality,
+                    budget_amount=int(budget),
+                    cuisine=selected_cuisines,
+                    min_rating=float(min_rating),
+                    party_type=party.strip() or None,
+                    service_expectation=service.strip() or None,
+                    free_text_notes=notes.strip() or None,
+                    top_k_results=int(top_k),
+                    top_n_candidates=int(top_n),
+                    include_debug=include_debug,
+                )
+            except ValidationError as err:
+                st.error(err)
+            else:
+                with st.spinner("Ranking restaurants…"):
+                    try:
+                        data = run_recommendations(req, retrieval, llm, circuit, metrics)
+                    except Exception as e:
+                        st.exception(e)
+                    else:
+                        st.session_state["last_result"] = data
+                        st.session_state["metrics_snapshot"] = metrics.snapshot()
+                        st.success("Recommendations updated below.")
 
     result = st.session_state.get("last_result")
     if result:
