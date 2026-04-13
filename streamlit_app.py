@@ -8,7 +8,7 @@ Local:
 
 Streamlit Community Cloud:
   Main file: streamlit_app.py
-  Packages file: requirements-streamlit.txt
+  Dependencies: repo-root requirements.txt (default) or requirements-streamlit.txt
   Secrets: GROQ_API_KEY (and optional GROQ_MODEL)
 """
 
@@ -22,8 +22,14 @@ from typing import Any
 from uuid import uuid4
 
 import streamlit as st
-from dotenv import load_dotenv
 from pydantic import BaseModel, Field, ValidationError
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - Streamlit Cloud should install python-dotenv
+
+    def load_dotenv(*_args: Any, **_kwargs: Any) -> bool:
+        return False
 
 from phase3.src.preference_service import PreferenceInput, normalize_preferences
 from phase4.src.retrieval_service import RetrievalService

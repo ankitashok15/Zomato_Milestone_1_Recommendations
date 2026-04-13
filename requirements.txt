@@ -1,0 +1,7 @@
+# Streamlit Community Cloud installs this file by default from the repo root.
+# Same pins as requirements-streamlit.txt — keep them in sync when you change deps.
+streamlit>=1.28,<2.0
+pandas>=2.2,<3.1
+pydantic>=2.7,<3.0
+httpx>=0.28,<1.0
+python-dotenv>=1.0,<2.0

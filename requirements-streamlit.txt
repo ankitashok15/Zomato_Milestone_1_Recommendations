@@ -1,5 +1,6 @@
-# Streamlit Cloud / local: pip install -r requirements-streamlit.txt
-# In Streamlit Community Cloud → Advanced → set "Python packages file" to requirements-streamlit.txt
+# Local optional: pip install -r requirements-streamlit.txt
+# Streamlit Cloud: default is repo-root requirements.txt (includes python-dotenv).
+# You can still point Advanced → packages file here if you prefer a separate file.
 streamlit>=1.28,<2.0
 pandas>=2.2,<3.1
 pydantic>=2.7,<3.0
