@@ -412,7 +412,7 @@ This section records the **intended production topology**: Next.js on **Vercel**
 |--------|-----------|
 | **Project** | Deploy from Git; set the Vercel project **root** to `frontend-next/` (or use a monorepo “Root Directory” setting pointing at that folder). |
 | **Build** | Install with `npm install`; production build `npm run build`; start command `npm run start` (default for Next.js on Vercel). |
-| **Environment variables** | Set **`BACKEND_URL`** to the **public HTTPS origin** of the live API (example: `https://api.example.com`), **no** trailing path. The app rewrites browser calls from `/api/backend/*` to `${BACKEND_URL}/*` on the server. |
+| **Environment variables** | Set **`BACKEND_URL`** to the **public HTTPS origin** of the **FastAPI** service (phase6: `/ui-api/*`, `/health/detailed`). **No trailing slash.** This is **not** the Streamlit app URL—Streamlit does not expose those JSON routes. Optional: **`NEXT_PUBLIC_STREAMLIT_APP_URL`** for a “Streamlit app” link in the Next.js nav (new tab). |
 | **Networking** | End users only load pages from the Vercel domain; API calls are proxied by Next.js, so the browser does not need direct CORS access to the API origin for that path. |
 | **Optional** | Preview deployments: use a staging `BACKEND_URL` or branch-specific env in Vercel. |
 

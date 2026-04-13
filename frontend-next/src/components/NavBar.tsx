@@ -24,6 +24,8 @@ const iconBtn = (active: boolean) =>
     border: active ? "none" : "1px solid transparent",
   }) as React.CSSProperties;
 
+const streamlitAppUrl = process.env.NEXT_PUBLIC_STREAMLIT_APP_URL?.replace(/\/+$/, "") || "";
+
 export function NavBar({ active }: { active: "home" | "history" | "metrics" }) {
   return (
     <header
@@ -40,12 +42,37 @@ export function NavBar({ active }: { active: "home" | "history" | "metrics" }) {
     >
       <span
         style={{
-          fontFamily: "var(--font-epilogue), sans-serif",
-          fontWeight: 700,
-          fontSize: "1.05rem",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "14px",
+          flexWrap: "wrap",
         }}
       >
-        Zomato AI Recommender
+        <span
+          style={{
+            fontFamily: "var(--font-epilogue), sans-serif",
+            fontWeight: 700,
+            fontSize: "1.05rem",
+          }}
+        >
+          Zomato AI Recommender
+        </span>
+        {streamlitAppUrl ? (
+          <a
+            href={streamlitAppUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "#f8f8f8",
+              textDecoration: "underline",
+              textUnderlineOffset: "3px",
+            }}
+          >
+            Streamlit app
+          </a>
+        ) : null}
       </span>
       <nav style={pillStyle} aria-label="Main">
         <Link href="/" style={iconBtn(active === "home")} title="Home" aria-current={active === "home" ? "page" : undefined}>
