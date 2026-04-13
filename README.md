@@ -28,14 +28,25 @@ The Next.js app lives only under **`frontend-next/`**. Vercel must use that fold
    `frontend-next`
 
 5. Framework should auto-detect **Next.js**. If not, choose **Next.js** manually.
-6. Add **Environment Variables** (Production — and Preview if you use it):
+6. Add **Environment Variables** (Production — and Preview if you use it).
+
+   **Connect Vercel to Streamlit only** (no FastAPI):
+
+   | Name | Value |
+   |------|--------|
+   | `NEXT_PUBLIC_BACKEND_MODE` | `streamlit` |
+   | `NEXT_PUBLIC_STREAMLIT_APP_URL` | `https://zomatorecommendations.streamlit.app` (no trailing `/`) |
+
+   **Use the Next.js form + metrics** (requires a real API):
 
    | Name | Value |
    |------|--------|
    | `BACKEND_URL` | `https://your-fastapi-host` (HTTPS, **no** trailing `/`) |
-   | `NEXT_PUBLIC_STREAMLIT_APP_URL` | (optional) e.g. `https://zomatorecommendations.streamlit.app` |
+   | `NEXT_PUBLIC_BACKEND_MODE` | `fastapi` or leave unset |
 
-7. **Deploy**. If you change `BACKEND_URL` later, trigger a **Redeploy** (rewrites are resolved at build time).
+   Optional in either setup: `NEXT_PUBLIC_STREAMLIT_APP_URL` for an extra **Streamlit app** link in the header.
+
+7. **Deploy**. If you change `BACKEND_URL` or any `NEXT_PUBLIC_*` variable, trigger a **Redeploy** (rewrites and public env are baked in at build time).
 
 #### Option B — Dashboard (project already exists, build failed)
 

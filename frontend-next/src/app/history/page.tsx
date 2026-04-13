@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/Button";
+import { STREAMLIT_APP_URL, isStreamlitBackendMode } from "@/lib/runtimeConfig";
 import type { HistoryEntry } from "@/lib/types";
 import { STORAGE_KEY_HISTORY } from "@/lib/types";
-import { Button } from "@/components/Button";
 
 export default function HistoryPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -39,6 +40,16 @@ export default function HistoryPage() {
         <p className="muted" style={{ marginTop: 0 }}>
           Stored in this browser only (same key as the legacy UI).
         </p>
+        {isStreamlitBackendMode() ? (
+          <p className="muted">
+            Recommendations on{" "}
+            <a href={STREAMLIT_APP_URL} target="_blank" rel="noopener noreferrer">
+              Streamlit
+            </a>{" "}
+            use that session; this page only lists requests made from this Next.js site (e.g. after switching to FastAPI
+            mode).
+          </p>
+        ) : null}
         <div className="row-actions">
           <Button variant="secondary" onClick={clear}>
             Clear history

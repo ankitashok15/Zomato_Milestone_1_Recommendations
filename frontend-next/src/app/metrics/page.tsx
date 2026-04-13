@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
 import { Button } from "@/components/Button";
+import { STREAMLIT_APP_URL, isStreamlitBackendMode } from "@/lib/runtimeConfig";
+import { apiGet } from "@/lib/api";
 
 export default function MetricsPage() {
   const [status, setStatus] = useState("");
@@ -28,8 +29,32 @@ export default function MetricsPage() {
   }, []);
 
   useEffect(() => {
-    loadMetrics();
+    if (!isStreamlitBackendMode()) loadMetrics();
   }, [loadMetrics]);
+
+  if (isStreamlitBackendMode()) {
+    return (
+      <>
+        <div className="divider-trio" aria-hidden>
+          <span />
+          <span />
+          <span />
+        </div>
+        <section className="card">
+          <h1>Metrics &amp; health</h1>
+          <p className="muted" style={{ marginTop: 0 }}>
+            FastAPI metrics (<code>/health/detailed</code>, <code>/ui-api/metrics</code>) are not available when the app
+            runs in <strong>Streamlit-connected</strong> mode. Open{" "}
+            <a href={STREAMLIT_APP_URL} target="_blank" rel="noopener noreferrer">
+              your Streamlit app
+            </a>{" "}
+            for the live recommender, or deploy FastAPI and set <code>NEXT_PUBLIC_BACKEND_MODE=fastapi</code> with{" "}
+            <code>BACKEND_URL</code>.
+          </p>
+        </section>
+      </>
+    );
+  }
 
   return (
     <>
