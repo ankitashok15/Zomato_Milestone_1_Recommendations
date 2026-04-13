@@ -420,7 +420,7 @@ This section records the **intended production topology**: Next.js on **Vercel**
 
 | Topic | Guidance |
 |--------|-----------|
-| **Platform** | **Streamlit Community Cloud** (or enterprise Streamlit hosting): connect the Git repository, specify `requirements.txt`, entry file (e.g. `streamlit_app.py` or `app.py`), and configure **Secrets** for keys and config (never commit `.env` contents). |
+| **Platform** | **Streamlit Community Cloud** (or enterprise Streamlit hosting): connect the Git repository; main file **`streamlit_app.py`** (repo root); Python packages file **`requirements-streamlit.txt`**; **Secrets** e.g. `GROQ_API_KEY`, optional `GROQ_MODEL` (never commit `.env`). |
 | **Secrets** | Map production secrets (e.g. LLM keys, optional DB URLs) via the host’s secret manager / `st.secrets` pattern expected by Streamlit. |
 | **Artifacts** | Ensure processed catalog data and any models required at runtime are available to the deployed environment (bundle in repo where appropriate, or download from object storage on startup with guarded credentials). |
 
