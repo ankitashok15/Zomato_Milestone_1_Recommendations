@@ -1,0 +1,19 @@
+{
+  "run_id": "run_20260413_133915",
+  "source_name": "huggingface_zomato_recommendation",
+  "source_url": "https://huggingface.co/datasets/ManikaSaini/zomato-restaurant-recommendation",
+  "source_version": "snapshot_2026-04-13",
+  "records_total": 51717,
+  "records_loaded": 9488,
+  "quality_report": {
+    "missing_name": 0,
+    "missing_city": 21,
+    "missing_cuisines": 24,
+    "missing_cost": 320,
+    "missing_rating": 9942,
+    "outlier_cost": 0,
+    "outlier_rating": 0,
+    "duplicate_records": 31922
+  },
+  "created_at_utc": "2026-04-13T13:39:54.120901+00:00"
+}

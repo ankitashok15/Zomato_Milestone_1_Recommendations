@@ -1,0 +1,32 @@
+{
+  "total_cases": 3,
+  "precision_at_k_proxy": 1.0,
+  "fallback_rate": 1.0,
+  "empty_response_rate": 0.0,
+  "cases": [
+    {
+      "id": "case_01",
+      "expected_cuisine": "North Indian",
+      "hit_at_k": true,
+      "result_count": 5,
+      "used_fallback": true,
+      "summary": "Fallback recommendations generated from deterministic ranking."
+    },
+    {
+      "id": "case_02",
+      "expected_cuisine": "Italian",
+      "hit_at_k": true,
+      "result_count": 5,
+      "used_fallback": true,
+      "summary": "Fallback recommendations generated from deterministic ranking."
+    },
+    {
+      "id": "case_03",
+      "expected_cuisine": "Fast Food",
+      "hit_at_k": true,
+      "result_count": 5,
+      "used_fallback": true,
+      "summary": "Fallback recommendations generated from deterministic ranking."
+    }
+  ]
+}

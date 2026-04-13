@@ -1,0 +1,29 @@
+[
+  {
+    "id": "case_01",
+    "location": "Bangalore",
+    "budget_amount": 1800,
+    "cuisine": ["North Indian"],
+    "min_rating": 3.8,
+    "top_k_results": 5,
+    "expected_cuisine": "North Indian"
+  },
+  {
+    "id": "case_02",
+    "location": "Bangalore",
+    "budget_amount": 3500,
+    "cuisine": ["Italian"],
+    "min_rating": 4.0,
+    "top_k_results": 5,
+    "expected_cuisine": "Italian"
+  },
+  {
+    "id": "case_03",
+    "location": "Bangalore",
+    "budget_amount": 800,
+    "cuisine": ["Fast Food"],
+    "min_rating": 3.5,
+    "top_k_results": 5,
+    "expected_cuisine": "Fast Food"
+  }
+]

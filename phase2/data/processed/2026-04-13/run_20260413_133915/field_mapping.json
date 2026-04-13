@@ -1,0 +1,11 @@
+{
+  "name": "name",
+  "city": "location",
+  "cuisines": "cuisines",
+  "avg_cost_for_two": "approx_cost(for two people)",
+  "rating": "rate",
+  "locality": "address",
+  "votes": "votes",
+  "latitude": null,
+  "longitude": null
+}
