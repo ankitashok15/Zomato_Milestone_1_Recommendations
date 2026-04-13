@@ -13,6 +13,49 @@ Phase-based pipeline (ingestion → preferences → retrieval → LLM → API) w
 ## Deployed apps
 
 - **Streamlit:** configure secrets (`GROQ_API_KEY`, etc.) on [Streamlit Community Cloud](https://streamlit.io/cloud); main file `streamlit_app.py`, packages `requirements.txt`.
-- **Next.js (Vercel):** set project **Root Directory** to `frontend-next`. Set **`BACKEND_URL`** to your **FastAPI HTTPS origin** (not the Streamlit URL). Optional **`NEXT_PUBLIC_STREAMLIT_APP_URL`** for the header link to Streamlit.
+
+### Vercel (Next.js) — root directory must be `frontend-next`
+
+The Next.js app lives only under **`frontend-next/`**. Vercel must use that folder as the **Root Directory**, or the build will look at the repo root and fail (no `package.json` there).
+
+#### Option A — Dashboard (first deploy)
+
+1. Open [vercel.com](https://vercel.com) → **Add New…** → **Project**.
+2. **Import** your Git repo (`Zomato_Milestone_1_Recommendations`).
+3. **Before** clicking **Deploy**, open **Build and Output Settings** (or **Configure Project**).
+4. Find **Root Directory** → **Edit** → set exactly:
+
+   `frontend-next`
+
+5. Framework should auto-detect **Next.js**. If not, choose **Next.js** manually.
+6. Add **Environment Variables** (Production — and Preview if you use it):
+
+   | Name | Value |
+   |------|--------|
+   | `BACKEND_URL` | `https://your-fastapi-host` (HTTPS, **no** trailing `/`) |
+   | `NEXT_PUBLIC_STREAMLIT_APP_URL` | (optional) e.g. `https://zomatorecommendations.streamlit.app` |
+
+7. **Deploy**. If you change `BACKEND_URL` later, trigger a **Redeploy** (rewrites are resolved at build time).
+
+#### Option B — Dashboard (project already exists, build failed)
+
+1. Open the project on Vercel → **Settings** → **General**.
+2. **Root Directory** → **Edit** → enter `frontend-next` → **Save**.
+3. **Deployments** → open the latest → **⋯** → **Redeploy**.
+
+#### Option C — CLI (no Root Directory field needed)
+
+From your machine, with the repo cloned:
+
+```bash
+cd frontend-next
+npx vercel login
+npx vercel link    # create or link a project
+npx vercel --prod
+```
+
+Vercel uses the current directory (`frontend-next`) as the app root.
+
+---
 
 Raw Hugging Face snapshots are gitignored; run `python phase2/src/ingest_zomato.py` to refresh `phase2/data/processed/`.
