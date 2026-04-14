@@ -6,8 +6,32 @@ function backendOrigin(): string {
   return raw.replace(/\/+$/, "");
 }
 
+function backendLooksLikeStreamlit(): boolean {
+  const raw = process.env.BACKEND_URL || "";
+  return /streamlit\.app/i.test(raw);
+}
+
+function effectiveBackendMode(): "streamlit" | "fastapi" {
+  const explicit = process.env.NEXT_PUBLIC_BACKEND_MODE;
+  if (explicit === "streamlit") return "streamlit";
+  if (explicit === "fastapi") return "fastapi";
+  // Safety net: if BACKEND_URL is actually a Streamlit URL, avoid FastAPI proxy mode.
+  return backendLooksLikeStreamlit() ? "streamlit" : "fastapi";
+}
+
+const mode = effectiveBackendMode();
+const inferredStreamlitUrl = backendLooksLikeStreamlit() ? backendOrigin() : "";
+
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_BACKEND_MODE: process.env.NEXT_PUBLIC_BACKEND_MODE || mode,
+    NEXT_PUBLIC_STREAMLIT_APP_URL: process.env.NEXT_PUBLIC_STREAMLIT_APP_URL || inferredStreamlitUrl,
+  },
   async rewrites() {
+    if (mode === "streamlit") {
+      // Streamlit-connected deploy does not use FastAPI proxy routes.
+      return [];
+    }
     const backend = backendOrigin();
     return [
       {

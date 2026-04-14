@@ -17,6 +17,21 @@ async function readErrorBody(res: Response): Promise<string> {
   }
 }
 
+async function parseJsonOrExplain<T>(res: Response): Promise<T> {
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    const body = await readErrorBody(res);
+    const looksLikeHtml = /<!doctype html>|<html/i.test(body);
+    if (looksLikeHtml) {
+      throw new Error(
+        "Backend returned HTML instead of API JSON. On Vercel, set NEXT_PUBLIC_BACKEND_MODE=streamlit and NEXT_PUBLIC_STREAMLIT_APP_URL for Streamlit deployments."
+      );
+    }
+    throw new Error("Unexpected backend response format. Expected JSON API response.");
+  }
+  return res.json() as Promise<T>;
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const url = `${API_PREFIX}${path}`;
   let res: Response;
@@ -32,7 +47,7 @@ export async function apiGet<T>(path: string): Promise<T> {
     throw e instanceof Error ? e : new Error(String(e));
   }
   if (!res.ok) throw new Error(await readErrorBody(res));
-  return res.json() as Promise<T>;
+  return parseJsonOrExplain<T>(res);
 }
 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
@@ -56,5 +71,5 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     throw e instanceof Error ? e : new Error(String(e));
   }
   if (!res.ok) throw new Error(await readErrorBody(res));
-  return res.json() as Promise<T>;
+  return parseJsonOrExplain<T>(res);
 }
