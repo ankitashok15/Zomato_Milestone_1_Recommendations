@@ -4,7 +4,28 @@ import { useEffect, useMemo, useState } from "react";
 import { apiGet, apiPost } from "@/lib/api";
 import type { HistoryEntry, RecommendationResponse, TopRestaurantsResponse } from "@/lib/types";
 import { STORAGE_KEY_HISTORY } from "@/lib/types";
+import { isStreamlitBackendMode, STREAMLIT_APP_URL } from "@/lib/runtimeConfig";
 import { Button } from "./Button";
+
+const FALLBACK_LOCALITIES = [
+  "Bangalore",
+  "Indiranagar",
+  "Koramangala",
+  "HSR Layout",
+  "Whitefield",
+  "Marathahalli",
+  "BTM Layout",
+];
+
+const FALLBACK_CUISINES = [
+  "North Indian",
+  "Chinese",
+  "South Indian",
+  "Biryani",
+  "Fast Food",
+  "Italian",
+  "Desserts",
+];
 
 export function HomePage() {
   const [localities, setLocalities] = useState<string[]>([]);
@@ -24,6 +45,7 @@ export function HomePage() {
   const [statusError, setStatusError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [exploringTop, setExploringTop] = useState(false);
+  const [apiDegraded, setApiDegraded] = useState(false);
   const [results, setResults] = useState<RecommendationResponse | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
@@ -36,8 +58,10 @@ export function HomePage() {
         setLocalities(d.localities || []);
       } catch {
         if (!cancelled) {
-          setStatusError(true);
-          setStatus("Could not load localities.");
+          setApiDegraded(true);
+          setLocalities(FALLBACK_LOCALITIES);
+          setStatusError(false);
+          setStatus("Using fallback localities. Live locality API is currently unavailable.");
         }
       }
     })();
@@ -58,8 +82,11 @@ export function HomePage() {
         setSelectedCuisine(defaultCuisine);
       } catch {
         if (!cancelled) {
-          setStatusError(true);
-          setStatus("Could not load cuisines.");
+          setApiDegraded(true);
+          setCuisines(FALLBACK_CUISINES);
+          setSelectedCuisine("North Indian");
+          setStatusError(false);
+          setStatus("Using fallback cuisines. Live cuisine API is currently unavailable.");
         }
       }
     })();
@@ -117,6 +144,12 @@ export function HomePage() {
       setStatus("Please enter a valid budget amount (INR, min 50).");
       return;
     }
+    if (isStreamlitBackendMode()) {
+      setStatusError(false);
+      setStatus("This deployment uses Streamlit mode. Open the Streamlit app for live recommendations.");
+      if (STREAMLIT_APP_URL) window.open(STREAMLIT_APP_URL, "_blank", "noopener,noreferrer");
+      return;
+    }
     setLoading(true);
     try {
       const payload = {
@@ -161,6 +194,12 @@ export function HomePage() {
       setStatus("Please select a locality to explore top restaurants.");
       return;
     }
+    if (isStreamlitBackendMode()) {
+      setStatusError(false);
+      setStatus("Top-rated API is unavailable in Streamlit mode. Open the Streamlit app to explore.");
+      if (STREAMLIT_APP_URL) window.open(STREAMLIT_APP_URL, "_blank", "noopener,noreferrer");
+      return;
+    }
     setExploringTop(true);
     try {
       const data = await apiGet<TopRestaurantsResponse>(
@@ -195,6 +234,11 @@ export function HomePage() {
   };
 
   const sendFeedback = async (eventType: string, restaurantId: string) => {
+    if (isStreamlitBackendMode()) {
+      setStatusError(false);
+      setStatus("Feedback endpoint is unavailable in Streamlit mode.");
+      return;
+    }
     if (!requestId) {
       setStatusError(true);
       setStatus("Request ID missing for feedback.");
@@ -215,6 +259,11 @@ export function HomePage() {
   };
 
   const checkHealth = async () => {
+    if (isStreamlitBackendMode()) {
+      setStatusError(false);
+      setStatus("Health check is unavailable in Streamlit mode. Use the Streamlit app URL.");
+      return;
+    }
     setStatus("Checking backend health…");
     setStatusError(false);
     try {
@@ -239,6 +288,18 @@ export function HomePage() {
         <p className="muted" style={{ marginTop: 0 }}>
           Preferences use your catalog localities and cuisines. Backend must be running (see README).
         </p>
+        {apiDegraded ? (
+          <p className="field-hint">
+            Live API is not reachable. Fallback dropdown values are shown so the UI remains usable.
+          </p>
+        ) : null}
+        {isStreamlitBackendMode() && STREAMLIT_APP_URL ? (
+          <div className="row-actions" style={{ marginTop: 10 }}>
+            <Button type="button" variant="outlined" onClick={() => window.open(STREAMLIT_APP_URL, "_blank", "noopener,noreferrer")}>
+              Open Streamlit app
+            </Button>
+          </div>
+        ) : null}
         <label className="label" htmlFor="pref-search">
           Quick filter (optional)
         </label>

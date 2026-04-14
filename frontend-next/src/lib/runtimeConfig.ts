@@ -7,9 +7,17 @@
 export const DEFAULT_STREAMLIT_APP_ORIGIN = "https://zomatorecommendations.streamlit.app";
 
 const trimmedEnv = (process.env.NEXT_PUBLIC_STREAMLIT_APP_URL || "").replace(/\/+$/, "");
+const explicitMode = process.env.NEXT_PUBLIC_BACKEND_MODE;
 
 /** `streamlit` = recommender runs on Streamlit Cloud (no FastAPI proxy). Default `fastapi`. */
-export const BACKEND_MODE = process.env.NEXT_PUBLIC_BACKEND_MODE === "streamlit" ? "streamlit" : "fastapi";
+export const BACKEND_MODE =
+  explicitMode === "streamlit"
+    ? "streamlit"
+    : explicitMode === "fastapi"
+      ? "fastapi"
+      : trimmedEnv
+        ? "streamlit"
+        : "fastapi";
 
 export const STREAMLIT_APP_URL =
   trimmedEnv || (BACKEND_MODE === "streamlit" ? DEFAULT_STREAMLIT_APP_ORIGIN.replace(/\/+$/, "") : "");

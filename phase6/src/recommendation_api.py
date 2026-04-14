@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -29,6 +30,14 @@ FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
 FRONTEND_INDEX = FRONTEND_DIR / "index.html"
 RATE_LIMIT_MAX_REQUESTS = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "40"))
 RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
+CORS_ALLOW_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ALLOW_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000,https://zomato-milestone-1-recommendations-lemon.vercel.app",
+    ).split(",")
+    if origin.strip()
+]
 
 rate_limiter = RateLimiter(
     max_requests=RATE_LIMIT_MAX_REQUESTS,
@@ -36,6 +45,14 @@ rate_limiter = RateLimiter(
 )
 circuit_breaker = CircuitBreaker(failure_threshold=3, recovery_timeout_seconds=60)
 metrics = MetricsCollector()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ALLOW_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
