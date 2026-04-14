@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiGet, apiPost } from "@/lib/api";
-import type { HistoryEntry, RecommendationResponse } from "@/lib/types";
+import type { HistoryEntry, RecommendationResponse, TopRestaurantsResponse } from "@/lib/types";
 import { STORAGE_KEY_HISTORY } from "@/lib/types";
 import { Button } from "./Button";
 
@@ -11,7 +11,7 @@ export function HomePage() {
   const [cuisines, setCuisines] = useState<string[]>([]);
   const [location, setLocation] = useState("");
   const [budgetAmount, setBudgetAmount] = useState(1200);
-  const [cuisineSelection, setCuisineSelection] = useState<Record<string, boolean>>({});
+  const [selectedCuisine, setSelectedCuisine] = useState("");
   const [minRating, setMinRating] = useState(3.8);
   const [topK, setTopK] = useState(5);
   const [partyType, setPartyType] = useState("");
@@ -23,6 +23,7 @@ export function HomePage() {
   const [status, setStatus] = useState("");
   const [statusError, setStatusError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [exploringTop, setExploringTop] = useState(false);
   const [results, setResults] = useState<RecommendationResponse | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
@@ -53,18 +54,8 @@ export function HomePage() {
         if (cancelled) return;
         const list = d.cuisines || [];
         setCuisines(list);
-        const next: Record<string, boolean> = {};
-        let picked = false;
-        for (const c of list) {
-          if (c === "North Indian") {
-            next[c] = true;
-            picked = true;
-          } else {
-            next[c] = false;
-          }
-        }
-        if (!picked && list.length) next[list[0]] = true;
-        setCuisineSelection(next);
+        const defaultCuisine = list.includes("North Indian") ? "North Indian" : list[0] || "";
+        setSelectedCuisine(defaultCuisine);
       } catch {
         if (!cancelled) {
           setStatusError(true);
@@ -77,31 +68,14 @@ export function HomePage() {
     };
   }, []);
 
-  const selectedCuisineList = useCallback(
-    () => Object.entries(cuisineSelection).filter(([, v]) => v).map(([k]) => k),
-    [cuisineSelection]
-  );
-
   const cuisineFilter = searchPref.trim().toLowerCase();
-  const visibleCuisines = useMemo(
-    () => cuisines.filter((c) => !cuisineFilter || c.toLowerCase().includes(cuisineFilter)),
-    [cuisines, cuisineFilter]
-  );
-
-  const displayCuisines = useMemo(() => {
-    const cap = 220;
-    let list =
-      visibleCuisines.length <= cap || cuisineFilter ? visibleCuisines : visibleCuisines.slice(0, cap);
-    const selected = Object.entries(cuisineSelection)
-      .filter(([, v]) => v)
-      .map(([k]) => k);
-    for (const k of selected) {
-      if (visibleCuisines.includes(k) && !list.includes(k)) {
-        list = [...list, k];
-      }
+  const visibleCuisines = useMemo(() => {
+    const list = cuisines.filter((c) => !cuisineFilter || c.toLowerCase().includes(cuisineFilter));
+    if (selectedCuisine && !list.includes(selectedCuisine)) {
+      return [selectedCuisine, ...list];
     }
     return list;
-  }, [visibleCuisines, cuisineFilter, cuisineSelection]);
+  }, [cuisines, cuisineFilter, selectedCuisine]);
 
   const filteredLocalities = useMemo(() => {
     const q = localitySearch.trim().toLowerCase();
@@ -111,10 +85,6 @@ export function HomePage() {
     }
     return list;
   }, [localities, localitySearch, location]);
-
-  const toggleCuisine = (name: string) => {
-    setCuisineSelection((prev) => ({ ...prev, [name]: !prev[name] }));
-  };
 
   const appendHistory = (entry: HistoryEntry) => {
     try {
@@ -137,10 +107,9 @@ export function HomePage() {
       setStatus("Please select a locality.");
       return;
     }
-    const cList = selectedCuisineList();
-    if (!cList.length) {
+    if (!selectedCuisine) {
       setStatusError(true);
-      setStatus("Please select at least one cuisine.");
+      setStatus("Please select a cuisine (e.g., North Indian).");
       return;
     }
     if (Number.isNaN(budgetAmount) || budgetAmount < 50) {
@@ -153,14 +122,14 @@ export function HomePage() {
       const payload = {
         location: loc,
         budget_amount: budgetAmount,
-        cuisine: cList,
+        cuisine: [selectedCuisine],
         min_rating: minRating,
         party_type: partyType.trim() || null,
         service_expectation: serviceExpectation.trim() || null,
         free_text_notes: freeText.trim() || null,
         top_k_results: topK,
-        top_n_candidates: 30,
-        include_debug: true,
+        top_n_candidates: 20,
+        include_debug: false,
       };
       const data = await apiPost<RecommendationResponse>("/ui-api/recommendations", payload);
       setResults(data);
@@ -170,7 +139,7 @@ export function HomePage() {
         request_id: data.request_id,
         location: loc,
         budget_amount: budgetAmount,
-        cuisine: cList,
+        cuisine: [selectedCuisine],
         result_count: (data.top_recommendations || []).length,
         summary: data.summary,
       });
@@ -180,6 +149,48 @@ export function HomePage() {
       setStatus(err instanceof Error ? err.message : "Request failed.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const exploreTopRated = async () => {
+    setStatus("");
+    setStatusError(false);
+    const loc = location.trim();
+    if (!loc) {
+      setStatusError(true);
+      setStatus("Please select a locality to explore top restaurants.");
+      return;
+    }
+    setExploringTop(true);
+    try {
+      const data = await apiGet<TopRestaurantsResponse>(
+        `/ui-api/top-restaurants?locality=${encodeURIComponent(loc)}&limit=5`
+      );
+      const topItems = data.top_restaurants || [];
+      setRequestId(null);
+      setResults({
+        request_id: `top-rated-${Date.now()}`,
+        summary: topItems.length
+          ? `Top rated picks in ${loc} based on ratings and vote volume.`
+          : `No top-rated restaurants found for ${loc}.`,
+        top_recommendations: topItems.map((item, index) => ({
+          rank: index + 1,
+          restaurant_id: item.restaurant_id,
+          restaurant_name: item.restaurant_name,
+          cuisine: item.cuisine || [],
+          rating: item.rating,
+          estimated_cost: item.estimated_cost,
+          currency: item.currency || "INR",
+          ai_explanation: `${item.restaurant_name} is highly rated (${item.rating}) with strong local trust (${item.votes} votes).`,
+          cautions: "Exploration mode: ranked only by rating and votes in the selected locality.",
+        })),
+      });
+      setStatus("Top rated restaurants loaded.");
+    } catch (err) {
+      setStatusError(true);
+      setStatus(err instanceof Error ? err.message : "Could not load top restaurants.");
+    } finally {
+      setExploringTop(false);
     }
   };
 
@@ -316,47 +327,25 @@ export function HomePage() {
               />
             </div>
             <div className="field-group" style={{ gridColumn: "1 / -1" }}>
-              <span className="label">Cuisine (tap to toggle)</span>
-              <div
-                className="cuisine-toggle-grid"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-                  gap: "8px",
-                  maxHeight: "200px",
-                  overflowY: "auto",
-                  padding: "10px",
-                  background: "var(--color-input-bg)",
-                  borderRadius: "var(--radius)",
-                  border: "1px solid var(--color-border)",
-                }}
+              <label className="label" htmlFor="cuisine-dropdown">
+                Cuisine dropdown
+              </label>
+              <select
+                id="cuisine-dropdown"
+                className="select"
+                value={selectedCuisine}
+                onChange={(e) => setSelectedCuisine(e.target.value)}
+                required
               >
-                {displayCuisines.map((c) => (
-                  <label
-                    key={c}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      cursor: "pointer",
-                      padding: "6px 8px",
-                      borderRadius: "var(--radius-sm)",
-                      background: cuisineSelection[c] ? "rgba(226, 55, 68, 0.12)" : "transparent",
-                      border: cuisineSelection[c] ? "1px solid var(--color-primary)" : "1px solid transparent",
-                    }}
-                  >
-                    <input type="checkbox" checked={!!cuisineSelection[c]} onChange={() => toggleCuisine(c)} />
+                <option value="">Select cuisine (e.g., North Indian)</option>
+                {visibleCuisines.map((c) => (
+                  <option key={c} value={c}>
                     {c}
-                  </label>
+                  </option>
                 ))}
-              </div>
+              </select>
               <span className="field-hint">
-                Select one or more cuisines.
-                {visibleCuisines.length > 220 && !cuisineFilter
-                  ? ` Showing first 220 of ${visibleCuisines.length} — use the filter above to narrow.`
-                  : null}
+                Example: try "North Indian" or "Chinese", then click Get recommendations.
               </span>
             </div>
             <div className="field-group">
@@ -415,6 +404,9 @@ export function HomePage() {
             <Button type="submit" variant="primary" disabled={loading}>
               {loading ? "Loading…" : "Get recommendations"}
             </Button>
+            <Button type="button" variant="outlined" onClick={exploreTopRated} disabled={exploringTop || loading}>
+              {exploringTop ? "Loading top rated…" : "Explore Top Rated in Locality"}
+            </Button>
             <Button type="button" variant="secondary" onClick={checkHealth}>
               Health check
             </Button>
@@ -446,17 +438,19 @@ export function HomePage() {
               <strong>Why:</strong> {item.ai_explanation}
             </p>
             {item.cautions && <p className="muted">{item.cautions}</p>}
-            <div className="row-actions">
-              <Button variant="outlined" className="btn-small" onClick={() => sendFeedback("click", item.restaurant_id)}>
-                Click
-              </Button>
-              <Button variant="primary" className="btn-small" onClick={() => sendFeedback("like", item.restaurant_id)}>
-                Like
-              </Button>
-              <Button variant="secondary" className="btn-small" onClick={() => sendFeedback("not_relevant", item.restaurant_id)}>
-                Not relevant
-              </Button>
-            </div>
+            {requestId ? (
+              <div className="row-actions">
+                <Button variant="outlined" className="btn-small" onClick={() => sendFeedback("click", item.restaurant_id)}>
+                  Click
+                </Button>
+                <Button variant="primary" className="btn-small" onClick={() => sendFeedback("like", item.restaurant_id)}>
+                  Like
+                </Button>
+                <Button variant="secondary" className="btn-small" onClick={() => sendFeedback("not_relevant", item.restaurant_id)}>
+                  Not relevant
+                </Button>
+              </div>
+            ) : null}
           </div>
         ))}
       </section>

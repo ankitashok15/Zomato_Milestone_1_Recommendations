@@ -29,7 +29,14 @@ body {
   font-family: var(--font-jakarta);
   font-size: 15px;
   line-height: 1.5;
-  background: var(--color-neutral);
+  background-color: var(--color-neutral);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.86)),
+    url("/static/assets/zomato-bg.png");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center center;
+  background-attachment: fixed;
   color: var(--color-secondary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -239,7 +246,13 @@ button {
   padding: 10px 18px;
   cursor: pointer;
   line-height: 1.2;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 2px 8px rgba(45, 45, 45, 0.1);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
 }
 
 button:not(.secondary):not(.ghost):not(.outlined):not(.tertiary) {
@@ -249,6 +262,8 @@ button:not(.secondary):not(.ghost):not(.outlined):not(.tertiary) {
 
 button:not(.secondary):not(.ghost):not(.outlined):not(.tertiary):hover {
   background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(226, 55, 68, 0.28);
 }
 
 button.secondary {
@@ -258,6 +273,8 @@ button.secondary {
 
 button.secondary:hover {
   background: #e0e0e0;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(45, 45, 45, 0.16);
 }
 
 button.ghost {
@@ -267,6 +284,8 @@ button.ghost {
 
 button.ghost:hover {
   background: #1a1a1a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
 }
 
 button.outlined {
@@ -277,6 +296,8 @@ button.outlined {
 
 button.outlined:hover {
   background: rgba(226, 55, 68, 0.06);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(226, 55, 68, 0.2);
 }
 
 button.tertiary {
@@ -289,6 +310,20 @@ button.tertiary {
 
 button.tertiary:hover {
   background: var(--color-tertiary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(0, 136, 129, 0.24);
+}
+
+button:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: 0 2px 8px rgba(45, 45, 45, 0.16);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(226, 55, 68, 0.22),
+    0 4px 12px rgba(45, 45, 45, 0.12);
 }
 
 button.danger {

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -43,14 +44,15 @@ class GroqLLMOrchestrator:
         self,
         api_key: str | None = None,
         model: str | None = None,
-        max_retries: int = 2,
-        timeout_seconds: float = 25.0,
+        max_retries: int = 1,
+        timeout_seconds: float = 12.0,
     ) -> None:
         self.api_key = api_key or os.getenv("GROQ_API_KEY", "")
         self.model = model or os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
         self.max_retries = max_retries
         self.timeout_seconds = timeout_seconds
-        self.cache: dict[str, OrchestrationResult] = {}
+        self.cache_ttl_seconds = max(0.0, float(os.getenv("LLM_CACHE_TTL_SECONDS", "30")))
+        self.cache: dict[str, tuple[float, OrchestrationResult]] = {}
 
     def _cache_key(
         self,
@@ -87,6 +89,21 @@ class GroqLLMOrchestrator:
                 return json.loads(cleaned[start : end + 1])
             raise
 
+    def _cache_get(self, key: str) -> OrchestrationResult | None:
+        cached = self.cache.get(key)
+        if not cached:
+            return None
+        created_at, value = cached
+        if self.cache_ttl_seconds and (time.monotonic() - created_at > self.cache_ttl_seconds):
+            self.cache.pop(key, None)
+            return None
+        return value
+
+    def _cache_set(self, key: str, value: OrchestrationResult) -> None:
+        if self.cache_ttl_seconds <= 0:
+            return
+        self.cache[key] = (time.monotonic(), value)
+
     def _build_prompt(
         self,
         normalized_pref: NormalizedPreference,
@@ -112,8 +129,9 @@ class GroqLLMOrchestrator:
         system_prompt = (
             "You are a restaurant recommendation ranker. "
             "Use ONLY the candidate restaurants provided by the user. "
-            "Return STRICT JSON only, no markdown, no prose outside JSON. "
-            "Rank top restaurants based on preference fit."
+            "Every candidate already matches the user's location, budget, rating floor, and at least one "
+            "requested cuisine — rank them by how well they fit the full preference profile (cuisines, notes). "
+            "Return STRICT JSON only, no markdown, no prose outside JSON."
         )
 
         user_prompt = {
@@ -150,7 +168,7 @@ class GroqLLMOrchestrator:
         url = "https://api.groq.com/openai/v1/chat/completions"
         payload = {
             "model": self.model,
-            "temperature": 0.2,
+            "temperature": 0.0,
             "response_format": {"type": "json_object"},
             "messages": messages,
         }
@@ -246,10 +264,12 @@ class GroqLLMOrchestrator:
             )
 
         cache_key = self._cache_key(normalized_pref, candidates, top_k)
-        if cache_key in self.cache:
-            return self.cache[cache_key]
+        cached = self._cache_get(cache_key)
+        if cached:
+            return cached
 
         candidate_ids = {c["restaurant_id"] for c in candidates}
+        candidate_lookup = {c["restaurant_id"]: c for c in candidates}
         messages = self._build_prompt(normalized_pref, candidates, top_k)
 
         for _ in range(self.max_retries + 1):
@@ -257,16 +277,38 @@ class GroqLLMOrchestrator:
                 raw_text = self._call_groq(messages)
                 raw_json = self._extract_json_payload(raw_text)
                 validated = self._validate_llm_output(raw_json, candidate_ids, top_k)
+                combined_rank: list[tuple[float, RecommendationItem]] = []
+                for item in validated.recommendations:
+                    deterministic_score = float(
+                        candidate_lookup.get(item.restaurant_id, {})
+                        .get("scoring", {})
+                        .get("score", 0.0)
+                    )
+                    llm_score = float(item.fit_score) / 100.0
+                    final_score = (0.75 * deterministic_score) + (0.25 * llm_score)
+                    combined_rank.append((final_score, item))
+                reranked_items = [entry[1] for entry in sorted(combined_rank, key=lambda x: x[0], reverse=True)]
+                repaired_recommendations: list[dict[str, Any]] = []
+                for idx, item in enumerate(reranked_items[:top_k], start=1):
+                    repaired_recommendations.append(
+                        {
+                            "restaurant_id": item.restaurant_id,
+                            "rank": idx,
+                            "fit_score": item.fit_score,
+                            "explanation": item.explanation,
+                            "cautions": item.cautions,
+                        }
+                    )
                 result = OrchestrationResult(
                     summary=validated.summary,
-                    recommendations=[item.model_dump() for item in validated.recommendations],
+                    recommendations=repaired_recommendations,
                     used_fallback=False,
                 )
-                self.cache[cache_key] = result
+                self._cache_set(cache_key, result)
                 return result
             except (httpx.HTTPError, json.JSONDecodeError, ValidationError, ValueError, RuntimeError):
                 continue
 
         result = self._fallback(candidates, top_k=top_k)
-        self.cache[cache_key] = result
+        self._cache_set(cache_key, result)
         return result

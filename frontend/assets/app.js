@@ -3,12 +3,21 @@ const resultsEl = document.getElementById("results");
 const summaryEl = document.getElementById("summary");
 const statusEl = document.getElementById("status");
 const healthBtn = document.getElementById("healthBtn");
+const topRatedBtn = document.getElementById("topRatedBtn");
 const locationSelect = document.getElementById("location");
-const cuisineSelect = document.getElementById("cuisine");
+const cuisineSelect = document.getElementById("cuisineDropdown");
 
 const STORAGE_KEY_HISTORY = "zomato_request_history";
+const REQUEST_MS = 15000;
 
 let latestRequestId = null;
+
+function timeoutSignal() {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(REQUEST_MS);
+  }
+  return undefined;
+}
 
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
@@ -17,7 +26,10 @@ function setStatus(message, isError = false) {
 
 async function loadLocalities() {
   try {
-    const response = await fetch("/ui-api/localities");
+    const response = await fetch("/ui-api/localities", {
+      cache: "no-store",
+      signal: timeoutSignal()
+    });
     if (!response.ok) throw new Error(await response.text());
     const data = await response.json();
     const list = data.localities || [];
@@ -46,27 +58,28 @@ async function loadLocalities() {
 
 async function loadCuisines() {
   try {
-    const response = await fetch("/ui-api/cuisines");
+    const response = await fetch("/ui-api/cuisines", {
+      cache: "no-store",
+      signal: timeoutSignal()
+    });
     if (!response.ok) throw new Error(await response.text());
     const data = await response.json();
     const list = data.cuisines || [];
     cuisineSelect.innerHTML = "";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Select cuisine (e.g., North Indian)";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    cuisineSelect.appendChild(placeholder);
     for (const name of list) {
       const opt = document.createElement("option");
       opt.value = name;
       opt.textContent = name;
       cuisineSelect.appendChild(opt);
     }
-    let picked = false;
-    Array.from(cuisineSelect.options).forEach((o) => {
-      if (o.value === "North Indian") {
-        o.selected = true;
-        picked = true;
-      }
-    });
-    if (!picked && cuisineSelect.options.length) {
-      cuisineSelect.options[0].selected = true;
-    }
+    const preferred = list.includes("North Indian") ? "North Indian" : list[0];
+    if (preferred) cuisineSelect.value = preferred;
   } catch (err) {
     cuisineSelect.innerHTML = "";
     const opt = document.createElement("option");
@@ -92,6 +105,8 @@ async function sendFeedback(eventType, restaurantId) {
       headers: {
         "Content-Type": "application/json"
       },
+      cache: "no-store",
+      signal: timeoutSignal(),
       body: JSON.stringify({
         request_id: latestRequestId,
         restaurant_id: restaurantId,
@@ -119,17 +134,20 @@ function renderResults(data) {
   for (const item of items) {
     const box = document.createElement("div");
     box.className = "result-item";
+    const feedbackRow = latestRequestId
+      ? `<div class="row">
+        <button type="button" class="outlined" data-action="click">Click</button>
+        <button type="button" data-action="like">Like</button>
+        <button type="button" class="secondary" data-action="not_relevant">Not relevant</button>
+      </div>`
+      : "";
     box.innerHTML = `
       <h3>#${item.rank} ${item.restaurant_name}</h3>
       <p><strong>Rating:</strong> ${item.rating} | <strong>Cost:</strong> ${item.estimated_cost} ${item.currency}</p>
       <div class="chips">${(item.cuisine || []).map((c) => `<span class="chip">${c}</span>`).join("")}</div>
       <p><strong>Why:</strong> ${item.ai_explanation}</p>
       <p class="muted">${item.cautions || ""}</p>
-      <div class="row">
-        <button type="button" class="outlined" data-action="click">Click</button>
-        <button type="button" data-action="like">Like</button>
-        <button type="button" class="secondary" data-action="not_relevant">Not relevant</button>
-      </div>
+      ${feedbackRow}
     `;
     box.querySelectorAll("button[data-action]").forEach((btn) => {
       btn.addEventListener("click", () => sendFeedback(btn.dataset.action, item.restaurant_id));
@@ -147,11 +165,9 @@ form.addEventListener("submit", async (event) => {
       setStatus("Please select a locality.", true);
       return;
     }
-    const selectedCuisines = Array.from(cuisineSelect.selectedOptions)
-      .map((o) => o.value)
-      .filter(Boolean);
-    if (!selectedCuisines.length) {
-      setStatus("Please select at least one cuisine.", true);
+    const selectedCuisine = cuisineSelect.value.trim();
+    if (!selectedCuisine) {
+      setStatus("Please select a cuisine (e.g., North Indian).", true);
       return;
     }
     const budgetAmount = parseInt(document.getElementById("budgetAmount").value, 10);
@@ -162,20 +178,22 @@ form.addEventListener("submit", async (event) => {
     const payload = {
       location: loc,
       budget_amount: budgetAmount,
-      cuisine: selectedCuisines,
+      cuisine: [selectedCuisine],
       min_rating: parseFloat(document.getElementById("minRating").value || "0"),
       party_type: document.getElementById("partyType").value.trim() || null,
       service_expectation: document.getElementById("serviceExpectation").value.trim() || null,
       free_text_notes: document.getElementById("freeText").value.trim() || null,
       top_k_results: parseInt(document.getElementById("topK").value || "5", 10),
-      top_n_candidates: 30,
-      include_debug: true
+      top_n_candidates: 20,
+      include_debug: false
     };
     const response = await fetch("/ui-api/recommendations", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
+      cache: "no-store",
+      signal: timeoutSignal(),
       body: JSON.stringify(payload)
     });
     if (!response.ok) throw new Error(await response.text());
@@ -199,7 +217,10 @@ form.addEventListener("submit", async (event) => {
 healthBtn.addEventListener("click", async () => {
   setStatus("Checking backend health...");
   try {
-    const response = await fetch("/health/detailed");
+    const response = await fetch("/health/detailed", {
+      cache: "no-store",
+      signal: timeoutSignal()
+    });
     if (!response.ok) throw new Error("Health check failed.");
     const data = await response.json();
     setStatus(`Health OK | Circuit: ${data.circuit_breaker.state}`);
@@ -209,4 +230,43 @@ healthBtn.addEventListener("click", async () => {
 });
 
 Promise.all([loadLocalities(), loadCuisines()]);
+
+topRatedBtn.addEventListener("click", async () => {
+  setStatus("Loading top rated restaurants...");
+  try {
+    const loc = locationSelect.value.trim();
+    if (!loc) {
+      setStatus("Please select a locality first.", true);
+      return;
+    }
+    const response = await fetch(`/ui-api/top-restaurants?locality=${encodeURIComponent(loc)}&limit=5`, {
+      cache: "no-store",
+      signal: timeoutSignal()
+    });
+    if (!response.ok) throw new Error(await response.text());
+    const data = await response.json();
+    const items = data.top_restaurants || [];
+    latestRequestId = null;
+    renderResults({
+      request_id: `top-rated-${Date.now()}`,
+      summary: items.length
+        ? `Top rated picks in ${loc} based on ratings and vote volume.`
+        : `No top-rated restaurants found for ${loc}.`,
+      top_recommendations: items.map((item, idx) => ({
+        rank: idx + 1,
+        restaurant_id: item.restaurant_id,
+        restaurant_name: item.restaurant_name,
+        cuisine: item.cuisine || [],
+        rating: item.rating,
+        estimated_cost: item.estimated_cost,
+        currency: item.currency || "INR",
+        ai_explanation: `${item.restaurant_name} is highly rated (${item.rating}) with strong local trust (${item.votes} votes).`,
+        cautions: "Exploration mode: ranked only by rating and votes in the selected locality."
+      }))
+    });
+    setStatus("Top rated restaurants loaded.");
+  } catch (err) {
+    setStatus(err.message || "Could not load top rated restaurants.", true);
+  }
+});
 

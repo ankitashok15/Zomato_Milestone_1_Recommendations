@@ -1,6 +1,6 @@
 const API_PREFIX = "/api/backend";
 
-const REQUEST_MS = 25_000;
+const REQUEST_MS = 15_000;
 
 function requestTimeoutSignal(): AbortSignal | undefined {
   if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
@@ -43,6 +43,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      cache: "no-store",
       signal: requestTimeoutSignal(),
     });
   } catch (e) {

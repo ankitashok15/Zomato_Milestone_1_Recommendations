@@ -252,3 +252,14 @@ def ui_feedback_not_relevant(payload: FeedbackRequest) -> dict:
 @app.get("/ui-api/metrics")
 def ui_metrics() -> dict[str, int]:
     return metrics.snapshot()
+
+
+@app.get("/top-restaurants", dependencies=[Depends(verify_api_key)])
+def top_restaurants(locality: str, limit: int = 5) -> dict:
+    items = retrieval_service.top_restaurants_by_locality(locality=locality, limit=limit)
+    return {"locality": locality, "top_restaurants": items}
+
+
+@app.get("/ui-api/top-restaurants")
+def ui_top_restaurants(locality: str, limit: int = 5) -> dict:
+    return top_restaurants(locality=locality, limit=limit)

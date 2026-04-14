@@ -33,7 +33,14 @@ body {
   font-size: 15px;
   line-height: 1.5;
   color: var(--color-secondary);
-  background: var(--color-neutral);
+  background-color: var(--color-neutral);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.86)),
+    url("/images/zomato-bg.png");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center center;
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -272,7 +279,13 @@ h2 {
   border: none;
   font-family: inherit;
   line-height: 1.2;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 2px 8px rgba(45, 45, 45, 0.1);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
 }
 
 .btn:disabled {
@@ -287,6 +300,8 @@ h2 {
 
 .btn-primary:hover:not(:disabled) {
   background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(226, 55, 68, 0.28);
 }
 
 .btn-secondary {
@@ -296,6 +311,8 @@ h2 {
 
 .btn-secondary:hover:not(:disabled) {
   background: #e0e0e0;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(45, 45, 45, 0.16);
 }
 
 .btn-inverted {
@@ -305,6 +322,8 @@ h2 {
 
 .btn-inverted:hover:not(:disabled) {
   background: #1a1a1a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
 }
 
 .btn-outlined {
@@ -315,6 +334,8 @@ h2 {
 
 .btn-outlined:hover:not(:disabled) {
   background: rgba(226, 55, 68, 0.06);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(226, 55, 68, 0.2);
 }
 
 .btn-tertiary {
@@ -327,6 +348,20 @@ h2 {
 
 .btn-tertiary:hover:not(:disabled) {
   background: var(--color-tertiary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(0, 136, 129, 0.24);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: 0 2px 8px rgba(45, 45, 45, 0.16);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(226, 55, 68, 0.22),
+    0 4px 12px rgba(45, 45, 45, 0.12);
 }
 
 .btn-small {

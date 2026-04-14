@@ -69,11 +69,12 @@
               <input id="budgetAmount" type="number" min="50" max="100000" step="50" value="1200" required />
             </label>
             <label>
-              Cuisine
-              <select id="cuisine" multiple size="5">
+              Cuisine Dropdown
+              <select id="cuisineDropdown" required>
+                <option value="" selected>Select cuisine (e.g., North Indian)</option>
                 <option value="" disabled>Loading cuisines…</option>
               </select>
-              <span class="muted field-hint">Ctrl/Cmd + click to select multiple</span>
+              <span class="muted field-hint">Example: North Indian, Chinese, Biryani.</span>
             </label>
             <label>Minimum Rating<input id="minRating" type="number" min="0" max="5" step="0.1" value="3.8" /></label>
             <label>Party Type (optional)<input id="partyType" placeholder="family / friends" /></label>
@@ -85,6 +86,7 @@
           </label>
           <div class="row">
             <button type="submit">Get Recommendations</button>
+            <button id="topRatedBtn" type="button" class="outlined">Explore Top Rated in Locality</button>
             <button id="healthBtn" type="button" class="secondary">Health Check</button>
           </div>
         </form>

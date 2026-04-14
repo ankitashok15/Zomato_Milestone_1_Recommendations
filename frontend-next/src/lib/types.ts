@@ -16,6 +16,21 @@ export type RecommendationResponse = {
   top_recommendations: RecommendationItem[];
 };
 
+export type TopRestaurantsResponse = {
+  locality: string;
+  top_restaurants: Array<{
+    restaurant_id: string;
+    restaurant_name: string;
+    cuisine: string[];
+    rating: number;
+    estimated_cost: number;
+    currency: string;
+    votes: number;
+    locality?: string | null;
+    city: string;
+  }>;
+};
+
 export type HistoryEntry = {
   created_at: string;
   request_id: string;
